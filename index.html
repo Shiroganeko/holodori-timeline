@@ -18,7 +18,6 @@ input[type=number]{width:70px}
 button{font:inherit;padding:8px 13px;border:0;border-radius:7px;background:#333;color:#fff;cursor:pointer}
 button.secondary{background:#777}
 
-/* ホロメン選択プルダウン幅 (130px) */
 .team-row{display:flex;gap:8px;align-items:center;margin:9px 0;flex-wrap:wrap}
 .team-row .slot{text-align:center;font-weight:700;width:24px}
 .team-row select.member-select{width:130px;font-size:12px;padding:5px}
@@ -42,7 +41,6 @@ button.secondary{background:#777}
 .event{position:absolute;top:45px;transform:translateX(-50%);font-size:10px;white-space:nowrap}
 .note{font-size:12px;color:#555;line-height:1.6}
 
-/* SPスキル5回分入力エリア */
 .sp-panel{background:#fef3c7;padding:12px;border-radius:8px;border:1px solid #fde68a;margin-top:10px}
 .sp-title{font-weight:bold;margin-bottom:8px;font-size:14px;color:#b45309}
 .sp-grid{display:flex;flex-wrap:wrap;gap:10px 16px}
@@ -101,9 +99,8 @@ button.secondary{background:#777}
 </div>
 
 <div class="panel note">
-<b>使用方法</b><br>
-・「⚠️ スキル途切れ」レーンに、5人のホロメンのスキルが一切発動していない時間帯（隙間）が<b>ピンク色</b>で表示されます。<br>
-・全ホロメンの☆4・☆5データを収録しています。数値の調整は画面上の入力欄から直接変更可能です。
+<b>仕様メモ</b><br>
+・スキル間隔の計算式：<code>基本間隔 ÷ (1 + 短縮率)</code> に更新済みです。
 </div>
 </main>
 
@@ -226,7 +223,6 @@ function editData(i,key,value){
 function draw(){
   const song=Number(document.getElementById('songLength').value)||150;
   
-  // SPスキル5箇所分を取得
   const spItems = [];
   for(let i=1; i<=5; i++){
     const startVal = document.getElementById(`sp${i}_start`).value;
@@ -240,12 +236,12 @@ function draw(){
     }
   }
 
-  // 全スキルの発動期間を集計
   const activeIntervals = [];
   team.forEach(m => {
     if(m.card !== null){
       const c = CARDS[m.card];
-      const interval = c.interval * (1 - m.reduction / 100);
+      // ★ 修正箇所：間隔 ÷ (1 + 短縮率)
+      const interval = c.interval / (1 + m.reduction / 100);
       const dur = c.duration;
       if(interval > 0){
         for(let t = interval; t <= song + 1e-9; t += interval){
@@ -255,7 +251,6 @@ function draw(){
     }
   });
 
-  // 区間の統合
   activeIntervals.sort((a, b) => a.start - b.start);
   const mergedActive = [];
   activeIntervals.forEach(curr => {
@@ -271,7 +266,6 @@ function draw(){
     }
   });
 
-  // 途切れ（ギャップ）時間帯の算出
   const gapIntervals = [];
   let currentPos = 0;
   mergedActive.forEach(act => {
@@ -292,7 +286,6 @@ function draw(){
   }
   h+='</div>';
 
-  // --- スキル途切れ（隙間）表示レーン ---
   h+=`<div class="row gap-row"><div class="rowname" style="color:#e11d48">⚠️ スキル途切れ</div><div class="lane">`;
   gapIntervals.forEach(gap => {
     const dur = gap.end - gap.start;
@@ -307,7 +300,6 @@ function draw(){
   });
   h+='</div></div>';
 
-  // --- SPスキルレーン ---
   h+=`<div class="row sp-row"><div class="rowname" style="color:#d97706">⭐ SPスキル</div><div class="lane">`;
   spItems.forEach(sp => {
     const x=(sp.start/song)*width;
@@ -317,14 +309,14 @@ function draw(){
   });
   h+='</div></div>';
 
-  // --- チームホロメンレーン ---
   team.forEach((m,i)=>{
     const c=m.card===null?null:CARDS[m.card];
     h+=`<div class="row"><div class="rowname">${c?c.label:'未選択'}</div><div class="lane">`;
     if(c){
       const raw=c.interval;
       const dur=c.duration;
-      const interval=raw*(1-m.reduction/100);
+      // ★ 修正箇所：間隔 ÷ (1 + 短縮率)
+      const interval=raw / (1 + m.reduction / 100);
       if(interval>0){
         for(let t=interval;t<=song+1e-9;t+=interval){
           const x=(t/song)*width;

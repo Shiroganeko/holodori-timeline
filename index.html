@@ -20,6 +20,9 @@ button.secondary{background:#777}
 button.recommend{background:#10b981;font-weight:bold}
 button.recommend:hover{background:#059669}
 
+.party-panel{background:#e0f2fe;border:1px solid #bae6fd;padding:12px;border-radius:8px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.party-panel label{color:#0369a1}
+
 .team-row{display:flex;gap:8px;align-items:center;margin:9px 0;flex-wrap:wrap}
 .team-row .slot{text-align:center;font-weight:700;width:24px}
 .team-row select.member-select{width:130px;font-size:12px;padding:5px}
@@ -48,6 +51,9 @@ button.recommend:hover{background:#059669}
 .sp-grid{display:flex;flex-wrap:wrap;gap:10px 16px}
 .sp-item{display:flex;align-items:center;gap:6px;font-size:12px;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #fcd34d}
 .sp-item input[type=number]{width:60px;padding:4px}
+
+footer{text-align:center;margin-top:20px;padding:10px;font-size:13px;color:#666}
+.counter-box{display:inline-block;background:#333;color:#fff;padding:4px 10px;border-radius:4px;font-weight:bold;font-family:monospace}
 </style>
 </head>
 <body>
@@ -55,6 +61,20 @@ button.recommend:hover{background:#059669}
 <h1>ホロドリ アクティブスキル タイムライン</h1>
 
 <div class="panel">
+  <div class="party-panel">
+    <label>💾 パーティ保存枠:</label>
+    <select id="partySlot">
+      <option value="1">パーティ 1</option>
+      <option value="2">パーティ 2</option>
+      <option value="3">パーティ 3</option>
+      <option value="4">パーティ 4</option>
+      <option value="5">パーティ 5</option>
+    </select>
+    <button onclick="saveParty()">保存する</button>
+    <button class="secondary" onclick="loadParty()">読み込む</button>
+    <span id="partyMsg" style="font-size:12px;color:#0284c7;font-weight:bold"></span>
+  </div>
+
   <div class="controls">
     <label>曲の長さ <input id="songLength" type="number" value="150" min="1" step="1"> 秒</label>
     <button class="recommend" onclick="autoOptimize()">✨ オススメ構成（短縮率自動最適化）</button>
@@ -83,13 +103,16 @@ button.recommend:hover{background:#059669}
 
 <div class="panel note">
 <b>機能案内</b><br>
-・ドロップダウンリストの並び順を「フリー」→「ときのそら」からの登場・期生順に固定しました。<br>
+・💾 最大5つまで編成（キャラ・短縮率・手動編集データ）をブラウザに保存・復元できます。<br>
 ・「✨ オススメ構成」ボタンを押すと、選択中のホロメンでスキル途切れが最小になる短縮率（0%/4%/8%/12%）を自動セットします。
 </div>
+
+<footer>
+  アクセス回数: <span class="counter-box" id="accessCounter">0</span> 回目
+</footer>
 </main>
 
 <script>
-// 「フリー」から始まり、「ときのそら」〜の並び順に変更
 const RAW_DB = [
   {"name": "ときのそら", "variants": [{"star": 4, "label": "ときのそら（☆4）", "interval": 26, "duration": 10}, {"star": 5, "label": "ときのそら（☆5）", "interval": 24, "duration": 10}]},
   {"name": "ロボ子さん", "variants": [{"star": 4, "label": "ロボ子さん（☆4）", "interval": 24, "duration": 10}, {"star": 5, "label": "ロボ子さん（☆5）", "interval": 18, "duration": 8}]},
@@ -160,6 +183,57 @@ let team = [
  {card:null,reduction:0},
  {card:null,reduction:0}
 ];
+
+function showMsg(msg){
+  const el = document.getElementById('partyMsg');
+  el.innerText = msg;
+  setTimeout(()=> el.innerText = '', 3000);
+}
+
+function saveParty(){
+  const slot = document.getElementById('partySlot').value;
+  const data = team.map(m => {
+    if(m.card === null) return null;
+    const c = CARDS[m.card];
+    return {
+      label: c.label,
+      reduction: m.reduction,
+      interval: c.interval,
+      duration: c.duration
+    };
+  });
+  localStorage.setItem(`holodori_party_${slot}`, JSON.stringify(data));
+  showMsg(`パーティ ${slot} を保存しました！`);
+}
+
+function loadParty(){
+  const slot = document.getElementById('partySlot').value;
+  const saved = localStorage.getItem(`holodori_party_${slot}`);
+  if(!saved){
+    showMsg(`パーティ ${slot} にはデータが保存されていません`);
+    return;
+  }
+  const data = JSON.parse(saved);
+  team = data.map(item => {
+    if(!item) return { card: null, reduction: 0 };
+    const idx = CARDS.findIndex(c => c.label === item.label);
+    if(idx !== -1){
+      CARDS[idx].interval = item.interval;
+      CARDS[idx].duration = item.duration;
+      return { card: idx, reduction: item.reduction };
+    }
+    return { card: null, reduction: 0 };
+  });
+  renderTeam();
+  showMsg(`パーティ ${slot} を読み込みました！`);
+}
+
+function initCounter(){
+  let count = localStorage.getItem('holodori_access_count') || 0;
+  count = parseInt(count) + 1;
+  localStorage.setItem('holodori_access_count', count);
+  document.getElementById('accessCounter').innerText = count;
+}
 
 function cardOptions(selected){
   let html='<option value="">-- ホロメン --</option>';
@@ -401,6 +475,7 @@ for(let i=1; i<=5; i++){
 }
 
 renderTeam();
+initCounter();
 </script>
 </body>
 </html>

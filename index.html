@@ -28,6 +28,7 @@ button.recommend:hover{background:#059669}
 .team-row select.member-select{width:130px;font-size:12px;padding:5px}
 .team-row select.reduction-select{width:70px;font-size:12px;padding:5px}
 .team-row .inline{display:flex;gap:4px;align-items:center}
+.team-row .lock-label{font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer;color:#444}
 .small{font-size:11px;color:#666}
 
 #timelineWrap{overflow-x:auto}
@@ -47,8 +48,9 @@ button.recommend:hover{background:#059669}
 .note{font-size:12px;color:#555;line-height:1.6}
 
 .sp-panel{background:#fef3c7;padding:12px;border-radius:8px;border:1px solid #fde68a;margin-top:10px}
-.sp-title{font-weight:bold;margin-bottom:8px;font-size:14px;color:#b45309}
-.sp-grid{display:flex;flex-wrap:wrap;gap:10px 16px}
+.sp-header{display:flex;justify-content:space-between;align-items:center}
+.sp-title{font-weight:bold;font-size:14px;color:#b45309}
+.sp-grid{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:8px}
 .sp-item{display:flex;align-items:center;gap:6px;font-size:12px;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #fcd34d}
 .sp-item input[type=number]{width:60px;padding:4px}
 
@@ -82,8 +84,11 @@ footer{text-align:center;margin-top:20px;padding:10px;font-size:13px;color:#666}
   </div>
   
   <div class="sp-panel">
-    <div class="sp-title">⭐ SPスキル設定（最大5回個別設定・1秒刻み）</div>
-    <div class="sp-grid">
+    <div class="sp-header">
+      <div class="sp-title">⭐ SPスキル設定（最大5回個別設定・1秒刻み）</div>
+      <button type="button" class="secondary" style="padding:3px 8px;font-size:12px" onclick="toggleSpPanel()">表示/非表示</button>
+    </div>
+    <div class="sp-grid" id="spGrid">
       <div class="sp-item"><b>1回目:</b> 開始 <input id="sp1_start" type="number" value="15" step="1">s 持続 <input id="sp1_dur" type="number" value="8" step="1">s</div>
       <div class="sp-item"><b>2回目:</b> 開始 <input id="sp2_start" type="number" value="45" step="1">s 持続 <input id="sp2_dur" type="number" value="8" step="1">s</div>
       <div class="sp-item"><b>3回目:</b> 開始 <input id="sp3_start" type="number" value="75" step="1">s 持続 <input id="sp3_dur" type="number" value="8" step="1">s</div>
@@ -104,11 +109,11 @@ footer{text-align:center;margin-top:20px;padding:10px;font-size:13px;color:#666}
 <div class="panel note">
 <b>機能案内</b><br>
 ・💾 最大5つまで編成（キャラ・短縮率・手動編集データ）をブラウザに保存・復元できます。<br>
-・「✨ オススメ構成」ボタンを押すと、選択中のホロメンでスキル途切れが最小になる短縮率（0%/4%/8%/12%）を自動セットします。
+・「✨ オススメ構成」ボタンを押すと、選択中のホロメンでスキル途切れが最小になる短縮率（0%/4%/8%/12%）を自動セットします。（「固定」にチェックを入れた枠の短縮率は保持されます）
 </div>
 
 <footer>
-  アクセス回数: <span class="counter-box" id="accessCounter">0</span> 回目
+  アクセス回数: <span class="counter-box" id="accessCounter">--</span> 回目
 </footer>
 </main>
 
@@ -177,11 +182,11 @@ CARDS.push({...FREE.variants[0], holomem:"フリー"});
 for(const m of RAW_DB) for(const v of m.variants) CARDS.push({...v, holomem:m.name});
 
 let team = [
- {card:null,reduction:0},
- {card:null,reduction:0},
- {card:null,reduction:0},
- {card:null,reduction:0},
- {card:null,reduction:0}
+ {card:null,reduction:0,locked:false},
+ {card:null,reduction:0,locked:false},
+ {card:null,reduction:0,locked:false},
+ {card:null,reduction:0,locked:false},
+ {card:null,reduction:0,locked:false}
 ];
 
 function showMsg(msg){
@@ -198,6 +203,7 @@ function saveParty(){
     return {
       label: c.label,
       reduction: m.reduction,
+      locked: m.locked || false,
       interval: c.interval,
       duration: c.duration
     };
@@ -215,24 +221,35 @@ function loadParty(){
   }
   const data = JSON.parse(saved);
   team = data.map(item => {
-    if(!item) return { card: null, reduction: 0 };
+    if(!item) return { card: null, reduction: 0, locked: false };
     const idx = CARDS.findIndex(c => c.label === item.label);
     if(idx !== -1){
       CARDS[idx].interval = item.interval;
       CARDS[idx].duration = item.duration;
-      return { card: idx, reduction: item.reduction };
+      return { 
+        card: idx, 
+        reduction: item.reduction, 
+        locked: item.locked !== undefined ? item.locked : false 
+      };
     }
-    return { card: null, reduction: 0 };
+    return { card: null, reduction: 0, locked: false };
   });
   renderTeam();
   showMsg(`パーティ ${slot} を読み込みました！`);
 }
 
 function initCounter(){
-  let count = localStorage.getItem('holodori_access_count') || 0;
-  count = parseInt(count) + 1;
-  localStorage.setItem('holodori_access_count', count);
-  document.getElementById('accessCounter').innerText = count;
+  // 全ユーザー共通アクセスカウンター（カウントAPIを使用）
+  fetch('https://api.counterapi.dev/v1/holodori_timeline_tool/hits/up')
+    .then(res => res.json())
+    .then(data => {
+      if(data && data.value){
+        document.getElementById('accessCounter').innerText = data.value;
+      }
+    })
+    .catch(() => {
+      document.getElementById('accessCounter').innerText = '1';
+    });
 }
 
 function cardOptions(selected){
@@ -246,7 +263,13 @@ function cardOptions(selected){
 
 function setCard(i,v){team[i].card=v===''?null:Number(v);renderTeam();}
 function setReduction(i,v){team[i].reduction=Number(v);draw();}
-function resetTeam(){team=[0,1,2,3,4].map(()=>({card:null,reduction:0}));renderTeam();}
+function setLock(i,checked){team[i].locked=checked;}
+function resetTeam(){team=[0,1,2,3,4].map(()=>({card:null,reduction:0,locked:false}));renderTeam();}
+
+function toggleSpPanel(){
+  const grid = document.getElementById('spGrid');
+  grid.style.display = (grid.style.display === 'none') ? 'flex' : 'none';
+}
 
 function renderTeam(){
   const el=document.getElementById('team');
@@ -264,6 +287,7 @@ function renderTeam(){
         <option value="8" ${m.reduction===8?'selected':''}>8%</option>
         <option value="12" ${m.reduction===12?'selected':''}>12%</option>
       </select>
+      <label class="lock-label"><input type="checkbox" ${m.locked?'checked':''} onchange="setLock(${i},this.checked)">固定</label>
       <div class="inline"><span class="small">間隔</span><input type="number" step="0.01" value="${c?c.interval:''}" ${!c?'disabled':''} onchange="editData(${i},'interval',this.value)"></div>
       <div class="inline"><span class="small">持続</span><input type="number" step="0.01" value="${c?c.duration:''}" ${!c?'disabled':''} onchange="editData(${i},'duration',this.value)"></div>
     `;
@@ -330,11 +354,11 @@ function autoOptimize(){
   let bestGap = Infinity;
   let bestReductions = [0, 0, 0, 0, 0];
 
-  for(let r0 of options){
-    for(let r1 of options){
-      for(let r2 of options){
-        for(let r3 of options){
-          for(let r4 of options){
+  for(let r0 of (team[0].locked ? [team[0].reduction] : options)){
+    for(let r1 of (team[1].locked ? [team[1].reduction] : options)){
+      for(let r2 of (team[2].locked ? [team[2].reduction] : options)){
+        for(let r3 of (team[3].locked ? [team[3].reduction] : options)){
+          for(let r4 of (team[4].locked ? [team[4].reduction] : options)){
             const testTeam = [
               { card: team[0].card, reduction: r0 },
               { card: team[1].card, reduction: r1 },

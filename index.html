@@ -56,11 +56,21 @@ button.recommend:hover{background:#059669}
 
 footer{text-align:center;margin-top:20px;padding:10px;font-size:13px;color:#666}
 .counter-box{display:inline-block;background:#333;color:#fff;padding:4px 10px;border-radius:4px;font-weight:bold;font-family:monospace}
+
+/* Google翻訳枠の調整用CSS */
+.translate-wrap{margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <main>
 <h1>ホロドリ アクティブスキル タイムライン</h1>
+
+<!-- Google翻訳ツール配置エリア -->
+<div class="translate-wrap">
+  <span style="font-size:13px;font-weight:bold">🌐 Language:</span>
+  <div id="google_translate_element"></div>
+  <button class="secondary" style="padding:4px 8px;font-size:12px" onclick="resetToJapanese()">日本語に戻す</button>
+</div>
 
 <div class="panel">
   <div class="party-panel">
@@ -105,7 +115,7 @@ footer{text-align:center;margin-top:20px;padding:10px;font-size:13px;color:#666}
 <div class="panel">
   <div id="timelineWrap"><div id="timeline"></div></div>
 </div>
-<!-- タイムラインパネルの下に追加 -->
+
 <div class="panel usage-guide">
   <h2>☆本ツールの使い方</h2>
   
@@ -525,6 +535,13 @@ function draw(){
   document.getElementById('timeline').innerHTML=h;
 }
 
+// 原文（日本語）にリセットする関数
+function resetToJapanese() {
+  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=" + document.domain + "; path=/;";
+  location.reload();
+}
+
 document.getElementById('songLength').addEventListener('input', draw);
 for(let i=1; i<=5; i++){
   document.getElementById(`sp${i}_start`).addEventListener('input', draw);
@@ -534,5 +551,18 @@ for(let i=1; i<=5; i++){
 renderTeam();
 initCounter();
 </script>
+
+<!-- Google 翻訳初期化スクリプト -->
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'ja',
+    includedLanguages: 'en,ko,zh-TW', // 英語、韓国語、繁体字中国語（台湾）
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+  }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </body>
 </html>

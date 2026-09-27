@@ -23,9 +23,12 @@ button.recommend:hover{background:#059669}
 .party-panel{background:#e0f2fe;border:1px solid #bae6fd;padding:12px;border-radius:8px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .party-panel label{color:#0369a1}
 
+.filter-panel{background:#f1f5f9;border:1px solid #cbd5e1;padding:10px 14px;border-radius:8px;margin-bottom:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:13px}
+.filter-panel label{cursor:pointer;display:flex;align-items:center;gap:4px;user-select:none}
+
 .team-row{display:flex;gap:8px;align-items:center;margin:9px 0;flex-wrap:wrap}
 .team-row .slot{text-align:center;font-weight:700;width:24px}
-.team-row select.member-select{width:130px;font-size:12px;padding:5px}
+.team-row select.member-select{width:180px;font-size:12px;padding:5px}
 .team-row select.reduction-select{width:70px;font-size:12px;padding:5px}
 .team-row .inline{display:flex;gap:4px;align-items:center}
 .team-row .lock-label{font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer;color:#444}
@@ -39,7 +42,7 @@ button.recommend:hover{background:#059669}
 .row{height:64px;position:relative;border-bottom:1px solid #e5e7eb}
 .row.sp-row{background-color:#fffbeb}
 .row.gap-row{background-color:#fff1f2}
-.rowname{position:absolute;left:0;width:118px;top:20px;font-weight:700;font-size:13px}
+.rowname{position:absolute;left:0;width:118px;top:20px;font-weight:700;font-size:13px;word-break:break-all}
 .lane{position:absolute;left:125px;right:0;top:0;height:64px}
 .bar{position:absolute;top:17px;height:26px;border-radius:5px;background:#6a9df7;opacity:.82;min-width:2px}
 .bar.sp-bar{background:#f59e0b;opacity:.9}
@@ -109,6 +112,12 @@ footer{text-align:center;margin-top:20px;padding:10px;font-size:13px;color:#666}
 </div>
 
 <div class="panel">
+  <!-- ホロメン絞り込みフィルター -->
+  <div class="filter-panel">
+    <span style="font-weight:bold">🔍 表示フィルター:</span>
+    <label><input type="checkbox" id="hideStar4" onchange="renderTeam()"> ☆４を非表示にする</label>
+    <label><input type="checkbox" id="costumeOnly" onchange="renderTeam()"> 別衣装ホロメンのみ</label>
+  </div>
   <div id="team"></div>
 </div>
 
@@ -171,13 +180,15 @@ const RAW_DB = [
   {"name": "星街すいせい", "variants": [{"star": 5, "label": "星街すいせい（☆5・夏に一閃！水鉄砲のアルペジオ）", "interval": 23, "duration": 8}, {"star": 4, "label": "星街すいせい（☆4）", "interval": 31, "duration": 10}, {"star": 5, "label": "星街すいせい（☆5）", "interval": 29, "duration": 10}]},
   {"name": "アキ・ローゼンタール", "variants": [{"star": 5, "label": "アキ・ローゼンタール（☆5・陽だまりのミスティカルスイング）", "interval": 24, "duration": 9}, {"star": 4, "label": "アキ・ローゼンタール（☆4）", "interval": 23, "duration": 10}, {"star": 5, "label": "アキ・ローゼンタール（☆5）", "interval": 21, "duration": 8}]},
   {"name": "赤井はあと", "variants": [{"star": 4, "label": "赤井はあと（☆4）", "interval": 24, "duration": 10}, {"star": 5, "label": "赤井はあと（☆5）", "interval": 19, "duration": 7}]},
-  {"name": "白上フブキ", "variants": [{"star": 5, "label": "白上フブキ（☆5・渚で魅せるtwinkle）", "interval": 35, "duration": 13},{"star": 4, "label": "白上フブキ（☆4）", "interval": 23, "duration": 10}, {"star": 5, "label": "白上フブキ（☆5）", "interval": 30, "duration": 11}]},  {"name": "夏色まつり", "variants": [{"star": 4, "label": "夏色まつり（☆4）", "interval": 24, "duration": 10}, {"star": 5, "label": "夏色まつり（☆5）", "interval": 23, "duration": 8}]},
+  {"name": "白上フブキ", "variants": [{"star": 5, "label": "白上フブキ（☆5・渚で魅せるtwinkle）", "interval": 35, "duration": 13},{"star": 4, "label": "白上フブキ（☆4）", "interval": 23, "duration": 10}, {"star": 5, "label": "白上フブキ（☆5）", "interval": 30, "duration": 11}]},
+  {"name": "夏色まつり", "variants": [{"star": 4, "label": "夏色まつり（☆4）", "interval": 24, "duration": 10}, {"star": 5, "label": "夏色まつり（☆5）", "interval": 23, "duration": 8}]},
   {"name": "百鬼あやめ", "variants": [{"star": 5, "label": "百鬼あやめ（☆5・鬼神流・ぷかぷかリゾート）", "interval": 27, "duration": 10}, {"star": 4, "label": "百鬼あやめ（☆4）", "interval": 29, "duration": 9}, {"star": 5, "label": "百鬼あやめ（☆5）", "interval": 29, "duration": 10}]},
   {"name": "癒月ちょこ", "variants": [{"star": 4, "label": "癒月ちょこ（☆4）", "interval": 28, "duration": 10}, {"star": 5, "label": "癒月ちょこ（☆5）", "interval": 20, "duration": 7}]},
   {"name": "大空スバル", "variants": [{"star": 5, "label": "大空スバル（☆5・Energeticスプラッシュ！）", "interval": 17, "duration": 7}, {"star": 4, "label": "大空スバル（☆4）", "interval": 34, "duration": 11}, {"star": 5, "label": "大空スバル（☆5）", "interval": 34, "duration": 12}]},
   {"name": "大神ミオ", "variants": [{"star": 5, "label": "大神ミオ（☆5・夏にまどろむWolf Heart）", "interval": 23, "duration": 8},{"star": 4, "label": "大神ミオ（☆4）", "interval": 32, "duration": 11}, {"star": 5, "label": "大神ミオ（☆5）", "interval": 27, "duration": 9}]},
   {"name": "猫又おかゆ", "variants": [{"star": 5, "label": "猫又おかゆ（☆5・パラソル下のリバティキャット）", "interval": 28, "duration": 10},{"star": 4, "label": "猫又おかゆ（☆4）", "interval": 25, "duration": 10}, {"star": 5, "label": "猫又おかゆ（☆5）", "interval": 25, "duration": 10}]},
-  {"name": "戌神ころね", "variants": [{"star": 5, "label": "戌神ころね（☆5・密林を舞うワイルドサマー！）", "interval": 32, "duration": 11},{"star": 4, "label": "戌神ころね（☆4）", "interval": 18, "duration": 7}, {"star": 5, "label": "戌神ころね（☆5）", "interval": 17, "duration": 6}]},  {"name": "兎田ぺこら", "variants": [{"star": 4, "label": "兎田ぺこら（☆4）", "interval": 25, "duration": 10}, {"star": 5, "label": "兎田ぺこら（☆5）", "interval": 30, "duration": 12}]},
+  {"name": "戌神ころね", "variants": [{"star": 5, "label": "戌神ころね（☆5・密林を舞うワイルドサマー！）", "interval": 32, "duration": 11},{"star": 4, "label": "戌神ころね（☆4）", "interval": 18, "duration": 7}, {"star": 5, "label": "戌神ころね（☆5）", "interval": 17, "duration": 6}]},
+  {"name": "兎田ぺこら", "variants": [{"star": 4, "label": "兎田ぺこら（☆4）", "interval": 25, "duration": 10}, {"star": 5, "label": "兎田ぺこら（☆5）", "interval": 30, "duration": 12}]},
   {"name": "不知火フレア", "variants": [{"star": 5, "label": "不知火フレア（☆5・sparks sunset）", "interval": 33, "duration": 11}, {"star": 4, "label": "不知火フレア（☆4）", "interval": 20, "duration": 7}, {"star": 5, "label": "不知火フレア（☆5）", "interval": 26, "duration": 9}]},
   {"name": "白銀ノエル", "variants": [{"star": 5, "label": "白銀ノエル（☆5・波まとうゆるふわKnight）", "interval": 21, "duration": 7}, {"star": 4, "label": "白銀ノエル（☆4）", "interval": 29, "duration": 12}, {"star": 5, "label": "白銀ノエル（☆5）", "interval": 19, "duration": 7}]},
   {"name": "宝鐘マリン", "variants": [{"star": 5, "label": "宝鐘マリン（☆5・お宝独占♡ウォーターキャノン）", "interval": 34, "duration": 12}, {"star": 4, "label": "宝鐘マリン（☆4）", "interval": 25, "duration": 8}, {"star": 5, "label": "宝鐘マリン（☆5）", "interval": 23, "duration": 8}]},
@@ -282,7 +293,6 @@ function loadParty(){
 }
 
 function initCounter(){
-  // 全ユーザー共通アクセスカウンター（カウントAPIを使用）
   fetch('https://api.counterapi.dev/v1/holodori_timeline_tool/hits/up')
     .then(res => res.json())
     .then(data => {
@@ -296,10 +306,25 @@ function initCounter(){
 }
 
 function cardOptions(selected){
-  let html='<option value="">-- ホロメン --</option>';
-  for(let i=0;i<CARDS.length;i++){
-    const c=CARDS[i];
-    html+=`<option value="${i}" ${String(i)===String(selected)?'selected':''}>${c.label}</option>`;
+  const hideStar4 = document.getElementById('hideStar4') ? document.getElementById('hideStar4').checked : false;
+  const costumeOnly = document.getElementById('costumeOnly') ? document.getElementById('costumeOnly').checked : false;
+
+  let html = '<option value="">-- ホロメン --</option>';
+  for(let i = 0; i < CARDS.length; i++){
+    const c = CARDS[i];
+    
+    // 現在選択中のホロメンはフィルターに関係なく必ず表示に残す
+    const isSelected = String(i) === String(selected);
+
+    if(!isSelected) {
+      // ☆4を非表示にするフィルター
+      if(hideStar4 && c.star === 4) continue;
+
+      // 別衣装ホロメンのみフィルター (「☆5・」が含まれているかを判定)
+      if(costumeOnly && (!c.label.includes('（☆5・') || c.star === 4)) continue;
+    }
+
+    html += `<option value="${i}" ${isSelected ? 'selected' : ''}>${c.label}</option>`;
   }
   return html;
 }
